@@ -77,7 +77,7 @@ resource "azurerm_virtual_machine" "AZURE-VM" {
   location              = azurerm_resource_group.test.location
   resource_group_name   = azurerm_resource_group.test.name
   network_interface_ids = [azurerm_network_interface.nic[count.index].id]
-  vm_size               = "Standard_B1s"
+  vm_size               = "Standard_B2s"
 
   storage_image_reference {
     publisher = "OpenLogic"
@@ -246,7 +246,7 @@ resource "azurerm_windows_virtual_machine" "Windows-VM" {
   name                = "Windows-VM"
   resource_group_name = azurerm_resource_group.test.name
   location            = azurerm_resource_group.test.location
-  size                = "Standard_B1s"
+  size                = "Standard_B2s"
   admin_username = var.vm_admin_username
   admin_password = var.vm_admin_password
 
