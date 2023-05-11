@@ -103,41 +103,118 @@ resource "azurerm_virtual_machine" "AZURE-VM" {
 
 # NETWORK SECURITY GROUP
 resource "azurerm_network_security_group" "NSG" {
+  count               = length(var.subnet-names)
   name                = "NSG"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
 
+  security_rule {
+    name                   = "Allow-inbound-for-web-VM"
+    priority               = 100
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = 22
+    destination_port_range = 22
+    source_address_prefix  = "192.168.0.5"
+    destination_application_security_group_ids = [azurerm_application_security_group.ASG.id]
+  }
 
   security_rule {
-    name                       = "Allow_SSH_inbound"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = 22
-    destination_port_range     = 22
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+    name                                  = "Allow-outbound-for-web-VM"
+    priority                              = 101
+    direction                             = "Outbound"
+    access                                = "Allow"
+    protocol                              = "Tcp"
+    source_port_range                     = 22
+    destination_port_range                = 22
+    destination_address_prefix            = "192.168.0.5"
+    source_application_security_group_ids = [azurerm_application_security_group.ASG.id]
+  }
+
+  security_rule {
+    name                                       = "Allow-inbound-for-DB-ASG"
+    priority                                   = 102
+    direction                                  = "Inbound"
+    access                                     = "Allow"
+    protocol                                   = "Tcp"
+    source_port_range                          = 22
+    destination_port_range                     = 22
+    source_application_security_group_ids      = [azurerm_application_security_group.ASG.id]
+    destination_application_security_group_ids = [azurerm_application_security_group.ASG-DB.id]
+  }
+
+
+  security_rule {
+    name                                       = "Allow-outbound-for-DB-ASG"
+    priority                                   = 103
+    direction                                  = "Outbound"
+    access                                     = "Allow"
+    protocol                                   = "Tcp"
+    source_port_range                          = 22
+    destination_port_range                     = 22
+    source_application_security_group_ids      = [azurerm_application_security_group.ASG-DB.id]
+    destination_application_security_group_ids = [azurerm_application_security_group.ASG.id]
+
+  }
+
+  security_rule {
+    name                                  = "Allow-inbound-for-bastion-host"
+    priority                              = 104
+    direction                             = "Inbound"
+    access                                = "Allow"
+    protocol                              = "Tcp"
+    source_port_range                     = 443
+    destination_port_range                = 443
+    source_application_security_group_ids = [azurerm_application_security_group.ASG.id]
+    destination_address_prefix            = "*"
+
   }
   security_rule {
-    name                       = "Allow_SSH_outbound"
-    priority                   = 101
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = 22
-    destination_port_range     = 22
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
+    name                                       = "Allow-outbound-for-bastion-host"
+    priority                                   = 105
+    direction                                  = "Outbound"
+    access                                     = "Allow"
+    protocol                                   = "Tcp"
+    source_port_range                          = 443
+    destination_port_range                     = 443
+    source_address_prefix                      = "*"
+    destination_application_security_group_ids = [azurerm_application_security_group.ASG.id]
   }
+
 }
 
-resource "azurerm_subnet_network_security_group_association" "NSG-association" {
+resource "azurerm_subnet_network_security_group_association" "Associate-SG" {
   count                     = length(var.subnet-names)
   subnet_id                 = azurerm_subnet.Subnets[count.index].id
-  network_security_group_id = azurerm_network_security_group.NSG.id
+  network_security_group_id = azurerm_network_security_group.NSG[count.index].id
 
   depends_on = [azurerm_subnet.Subnets]
+}
+
+#APPLICATION SECURITY GROUP
+resource "azurerm_application_security_group" "ASG" {
+  name                = "ASG"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_network_interface_application_security_group_association" "application_security_group_association" {
+  count                         = (length(var.subnet-names)) - 1
+  network_interface_id          = azurerm_network_interface.nic[count.index].id
+  application_security_group_id = azurerm_application_security_group.ASG.id
+}
+
+resource "azurerm_application_security_group" "ASG-DB" {
+  name                = "ASG-DB"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = azurerm_resource_group.test.name
+}
+
+resource "azurerm_network_interface_application_security_group_association" "application_security_group_association-DB" {
+  count                         = (length(var.subnet-names)) - 2
+  network_interface_id          = azurerm_network_interface.nic[2].id
+  application_security_group_id = azurerm_application_security_group.ASG-DB.id
 }
 
 # WINDOWS-VM-----------------------------------------------------------------------------------------------------
