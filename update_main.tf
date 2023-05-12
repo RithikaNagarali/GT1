@@ -37,7 +37,7 @@ resource "azurerm_resource_group" "test" {
 # VIRTUAL NETWORK
 resource "azurerm_virtual_network" "VNet" {
   name                = "VNet"
-  address_space       = ["192.168.0.0/18"]
+  address_space       = ["192.168.0.0/22"]
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
 }
