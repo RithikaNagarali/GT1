@@ -92,7 +92,7 @@ resource "azurerm_virtual_machine" "AZURE-VM" {
     managed_disk_type = "Premium_LRS"
   }
   os_profile {
-    computer_name  = "AZ-EUS-L-WB-WB01-${count.index}"
+    computer_name  = count.index==0?"AZEUSLHCSVMweb" : count.index==1?"AZEUSLHCSVMapp" : "AZEUSLHCSVMdb"
     admin_username = var.vm_admin_username
     admin_password = var.vm_admin_password
   }
